@@ -4,7 +4,7 @@
             [ring.middleware.resource :as resource]))
 
 (defn handler [req]
-   {:status 200
+  {:status 200
    :headers {"Content-Type" "text/plain"}
    :body "Hello World"})
 
@@ -36,7 +36,7 @@
                                                   (browserchannel/send-map client-id map))))
                                              (swap! clients conj session-id)
                                              (doseq [client-id @clients]
-                                                  (browserchannel/send-map client-id {"msg" (str "client " session-id " connected")})))})))
+                                               (browserchannel/send-map client-id {"msg" (str "client " session-id " connected")})))})))
 
 (defn -main [& args]
   (jetty/run-jetty-async #'dev-app {:port (Integer.
