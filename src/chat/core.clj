@@ -1,3 +1,4 @@
+;Comet implementation
 (ns chat.core
   (:require [net.thegeez.browserchannel :as browserchannel]
             [net.thegeez.jetty-async-adapter :as jetty]
