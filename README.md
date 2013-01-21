@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # DEPRECATED
 
 This project has been split into components: https://github.com/thegeez/clj-browserchannel
@@ -151,3 +152,9 @@ Gijs Stuurman / [@thegeez][twt] / [Blog][blog] / [GitHub][github]
 ### License
 
 Copyright (c) 2012 Gijs Stuurman and released under an MIT license.
+=======
+fishbowl
+========
+
+The fishes is robots and the bowl is on fire
+>>>>>>> 88970a9750fe6d51668f96d3ce5f0feea40343c5
