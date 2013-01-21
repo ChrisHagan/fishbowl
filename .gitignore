@@ -8,6 +8,4 @@ pom.xml
 .lein-deps-sum
 .lein-failures
 .lein-plugins
-/resources/dev/js
-/resources/public/js
 /out
