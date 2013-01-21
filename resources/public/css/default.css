@@ -17,3 +17,9 @@ body {
     padding: 3px;
     background-color: #90db46;
 }
+
+#board{
+    width:400px;
+    height:400px;
+    border:2px solid black;
+}

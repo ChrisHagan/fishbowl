@@ -2,6 +2,7 @@
 (ns chat.core
   (:require [net.thegeez.browserchannel :as browserchannel]
             [net.thegeez.jetty-async-adapter :as jetty]
+            [game.core :as game]
             [ring.middleware.resource :as resource]))
 
 (defn handler [req]
@@ -19,7 +20,7 @@
                                            :on-session
                                            (fn [session-id]
                                              (println "session " session-id "connected")
-                                             
+                                             (game/birth-user session-id)
                                              (browserchannel/add-listener
                                               session-id
                                               :close
@@ -28,6 +29,7 @@
                                                 (swap! clients disj session-id)
                                                 (doseq [client-id @clients]
                                                   (browserchannel/send-map client-id {"msg" (str "client " session-id " disconnected " reason)}))))
+
                                              (browserchannel/add-listener
                                               session-id
                                               :map
@@ -35,6 +37,7 @@
                                                 (println "session " session-id " sent " map)
                                                 (doseq [client-id @clients]
                                                   (browserchannel/send-map client-id map))))
+
                                              (swap! clients conj session-id)
                                              (doseq [client-id @clients]
                                                (browserchannel/send-map client-id {"msg" (str "client " session-id " connected")})))})))

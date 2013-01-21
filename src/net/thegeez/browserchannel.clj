@@ -171,20 +171,20 @@
                     headers]
   IResponseWrapper
   (write-head [this]
-              (respond {:type :head
-                        :status 200
-                        :headers headers}))
+    (respond {:type :head
+              :status 200
+              :headers headers}))
   (write [this data]
-         (write-raw this (size-json-str data)))
+    (write-raw this (size-json-str data)))
   (write-raw [this data]
-             (respond {:type :chunk
-                       :data data}))
+    (respond {:type :chunk
+              :data data}))
   (write-end [this]
-             (respond {:type :close}))
+    (respond {:type :close}))
   (send-error [this status-code message]
-              (respond {:type :error
-                        :status-code status-code
-                        :message message})))
+    (respond {:type :error
+              :status-code status-code
+              :message message})))
 
 ;; for writing on backchannels to IE clients
 (deftype IEWriter [;; respond calls functions on the continuation
@@ -199,35 +199,35 @@
                    ^{:volatile-mutable true} write-raw-padding-sent]
   IResponseWrapper
   (write-head [this]
-              (respond {:type :head
-                        :status 200
-                        :headers (merge headers ie-headers)})
-              (respond {:type :chunk :data "<html><body>\n"})
-              (when (seq domain)
-                (respond {:type :chunk
-                          :data (str "<script>try{document.domain=\"" (pr-str (json/json-str domain)) "\";}catch(e){}</script>\n")})))
+    (respond {:type :head
+              :status 200
+              :headers (merge headers ie-headers)})
+    (respond {:type :chunk :data "<html><body>\n"})
+    (when (seq domain)
+      (respond {:type :chunk
+                :data (str "<script>try{document.domain=\"" (pr-str (json/json-str domain)) "\";}catch(e){}</script>\n")})))
   (write [this data]
-         (respond {:type :chunk
-                   :data (str "<script>try {parent.m(" (pr-str (json/json-str data)) ")} catch(e) {}</script>\n")})
-         (when-not write-padding-sent
-           (respond {:type :chunk
-                     :data ie-stream-padding})
-           (set! write-padding-sent true)))
+    (respond {:type :chunk
+              :data (str "<script>try {parent.m(" (pr-str (json/json-str data)) ")} catch(e) {}</script>\n")})
+    (when-not write-padding-sent
+      (respond {:type :chunk
+                :data ie-stream-padding})
+      (set! write-padding-sent true)))
   (write-raw [this data]
-             (respond {:type :chunk
-                       :data (str "<script>try {parent.m(" (pr-str data) ")} catch(e) {}</script>\n")})
-             (when-not write-raw-padding-sent
-               (respond {:type :chunk
-                         :data ie-stream-padding})
-               (set! write-raw-padding-sent true)))
+    (respond {:type :chunk
+              :data (str "<script>try {parent.m(" (pr-str data) ")} catch(e) {}</script>\n")})
+    (when-not write-raw-padding-sent
+      (respond {:type :chunk
+                :data ie-stream-padding})
+      (set! write-raw-padding-sent true)))
   (write-end [this]
-             (respond {:type :chunk
-                       :data "<script>try  {parent.d(); }catch (e){}</script>\n"})
-             (respond {:type :close}))
+    (respond {:type :chunk
+              :data "<script>try  {parent.d(); }catch (e){}</script>\n"})
+    (respond {:type :close}))
   (send-error [this status-code message]
-              (respond {:type :error
-                        :status-code status-code
-                        :message message})))
+    (respond {:type :error
+              :status-code status-code
+              :message message})))
 
 ;; {sessionId -> (agent session)}
 (def sessions (atom {}))
@@ -314,122 +314,122 @@
                     session-timeout]
   ISession
   (clear-back-channel [this]
-                      (try
-                        (when back-channel
-                          (write-end (:respond back-channel)))
-                        (catch Exception e
-                          nil ;; close back channel regardless
-                          ))
-                      (-> this
-                          clear-heartbeat
-                          (assoc :back-channel nil)
-                          refresh-session-timeout))
+    (try
+      (when back-channel
+        (write-end (:respond back-channel)))
+      (catch Exception e
+        nil ;; close back channel regardless
+        ))
+    (-> this
+        clear-heartbeat
+        (assoc :back-channel nil)
+        refresh-session-timeout))
   (set-back-channel [this respond req]
-                    (let [bc (BackChannel. respond
-                                           ;; can we stream responses
-                                           ;; back?
-                                           ;; CI is determined client
-                                           ;; side with /test
-                                           (= (get-in req [:query-params "CI"]) "0")
-                                           ;; no bytes sent yet
-                                           0)]
-                      (-> this
-                          clear-back-channel
-                          ;; clear-back-channel sets the session-timeout
-                          ;; here we know the session is alive and
-                          ;; well due to this new backchannel
-                          clear-session-timeout 
-                          (assoc :back-channel bc)
-                          refresh-heartbeat
-                          ;; try to send any data that was buffered
-                          ;; while there was no backchannel
-                          flush-buffer)))
+    (let [bc (BackChannel. respond
+                           ;; can we stream responses
+                           ;; back?
+                           ;; CI is determined client
+                           ;; side with /test
+                           (= (get-in req [:query-params "CI"]) "0")
+                           ;; no bytes sent yet
+                           0)]
+      (-> this
+          clear-back-channel
+          ;; clear-back-channel sets the session-timeout
+          ;; here we know the session is alive and
+          ;; well due to this new backchannel
+          clear-session-timeout 
+          (assoc :back-channel bc)
+          refresh-heartbeat
+          ;; try to send any data that was buffered
+          ;; while there was no backchannel
+          flush-buffer)))
   (clear-heartbeat [this]
-                   (when heartbeat-timeout
-                       (.cancel heartbeat-timeout
-                                false ;; do not interrupt running tasks
-                                ))
-                   (assoc this :heartbeat-timeout nil))
+    (when heartbeat-timeout
+      (.cancel heartbeat-timeout
+               false ;; do not interrupt running tasks
+               ))
+    (assoc this :heartbeat-timeout nil))
   (refresh-heartbeat [this]
-                     (-> this
-                         clear-heartbeat
-                         (assoc :heartbeat-timeout
-                           ;; *agent* not bound when executed later
-                           ;; through schedule, therefor passed explicitly
-                           (let [session-agent *agent*]
-                             (schedule (fn []
-                                         (send-off session-agent #(-> %
-                                                                      (queue-array ["noop"])
-                                                                      flush-buffer)))
-                                       (:heartbeat-interval details))))))
+    (-> this
+        clear-heartbeat
+        (assoc :heartbeat-timeout
+          ;; *agent* not bound when executed later
+          ;; through schedule, therefor passed explicitly
+          (let [session-agent *agent*]
+            (schedule (fn []
+                        (send-off session-agent #(-> %
+                                                     (queue-array ["noop"])
+                                                     flush-buffer)))
+                      (:heartbeat-interval details))))))
   (clear-session-timeout [this]
-                         (when session-timeout
-                           (.cancel session-timeout
-                                    false ;; do not interrupt running tasks
-                                    ))
-                         (assoc this :session-timeout nil))
+    (when session-timeout
+      (.cancel session-timeout
+               false ;; do not interrupt running tasks
+               ))
+    (assoc this :session-timeout nil))
   (refresh-session-timeout [this]
-                           (-> this
-                               clear-session-timeout
-                               (assoc :session-timeout
-                                 (let [session-agent *agent*]
-                                   (schedule (fn []
-                                               (send-off session-agent close "Timed out"))
-                                             (:session-timeout-interval details))))))
+    (-> this
+        clear-session-timeout
+        (assoc :session-timeout
+          (let [session-agent *agent*]
+            (schedule (fn []
+                        (send-off session-agent close "Timed out"))
+                      (:session-timeout-interval details))))))
   (queue-array [this array]
-               (let [next-array-id (inc last-sent-array-id)]
-                 (-> this
-                     (update-in [:array-buffer] conj [next-array-id array])
-                     (assoc :last-sent-array-id next-array-id))))
+    (let [next-array-id (inc last-sent-array-id)]
+      (-> this
+          (update-in [:array-buffer] conj [next-array-id array])
+          (assoc :last-sent-array-id next-array-id))))
   (acknowledge-arrays [this array-id]
-                      (update-in this [:to-confirm-arrays-ids] drop-queue array-id))
+    (update-in this [:to-confirm-arrays-ids] drop-queue array-id))
   ;; tries to do the actual writing to the client
   ;; @todo the composition is a bit awkward in this method due to the
   ;; try catch and if mix
   (flush-buffer [this]
-                (if-not back-channel
-                  this ;; nothing to do when there's no connection
-                  (if-let [buffer (seq array-buffer)]
-                    (try
-                      ;; write throws exception when the connection is closed
-                      (write (:respond back-channel) buffer)
-                      ;; size is an approximation
-                      (let [this (let [size (reduce + 0 (map count (map json/json-str buffer)))]
-                                   (-> this
-                                       (assoc :array-buffer clojure.lang.PersistentQueue/EMPTY)
-                                       (assoc :last-sent-array-id (first (last buffer)))
-                                       (update-in [:to-confirm-array-ids] into (map first buffer))
-                                       (update-in [:back-channel :bytes-sent] + size)))
-                            ;; clear-back-channel closes the back
-                            ;; channel when the channel does not
-                            ;; support streaming or when a large
-                            ;; amount of data has been sent
-                            this (if (or (not (get-in this [:back-channel :chunk]))
-                                         (< (:data-threshold details) (get-in this [:back-channel :bytes-sent])))
-                                   (clear-back-channel this)
-                                   this)]
-                        ;; this sending of data keeps the connection alive
-                        ;; make a new heartbeat
-                        (refresh-heartbeat this))
-                      (catch Exception e
-                        ;; when write failed
-                        ;; non delivered arrays are still in buffer
-                        (clear-back-channel this)
-                        ))
-                    this ;; do nothing if buffer is empty
-                    )))
+    (if-not back-channel
+      this ;; nothing to do when there's no connection
+      (if-let [buffer (seq array-buffer)]
+        (try
+          ;; write throws exception when the connection is closed
+          (write (:respond back-channel) buffer)
+          ;; size is an approximation
+          (let [this (let [size (reduce + 0 (map count (map json/json-str buffer)))]
+                       (-> this
+                           (assoc :array-buffer clojure.lang.PersistentQueue/EMPTY)
+                           (assoc :last-sent-array-id (first (last buffer)))
+                           (update-in [:to-confirm-array-ids] into (map first buffer))
+                           (update-in [:back-channel :bytes-sent] + size)))
+                ;; clear-back-channel closes the back
+                ;; channel when the channel does not
+                ;; support streaming or when a large
+                ;; amount of data has been sent
+                this (if (or (not (get-in this [:back-channel :chunk]))
+                             (< (:data-threshold details) (get-in this [:back-channel :bytes-sent])))
+                       (clear-back-channel this)
+                       this)]
+            ;; this sending of data keeps the connection alive
+            ;; make a new heartbeat
+            (refresh-heartbeat this))
+          (catch Exception e
+            ;; when write failed
+            ;; non delivered arrays are still in buffer
+            (clear-back-channel this)
+            ))
+        this ;; do nothing if buffer is empty
+        )))
   ;; closes the session and removes it from sessions
   (close [this message]
 
-         (-> this
-             clear-back-channel
-             clear-session-timeout
-             ;; the heartbeat timeout is cancelled by clear-back-channel
-             )
-         (swap! sessions dissoc id)
-         (notify-listeners id :close message)
-         nil ;; the agent will no longer wrap a session
-         ))
+    (-> this
+        clear-back-channel
+        clear-session-timeout
+        ;; the heartbeat timeout is cancelled by clear-back-channel
+        )
+    (swap! sessions dissoc id)
+    (notify-listeners id :close message)
+    nil ;; the agent will no longer wrap a session
+    ))
 
 ;; creates a session agent wrapping session data and
 ;; adds the session to sessions
@@ -620,8 +620,8 @@
           (when-let [AID (get-in req [:query-params "AID"])]
             (send-off session-agent acknowledge-arrays AID)))
         (condp = (:request-method req)
-            :post (handle-forward-channel req session-agent options)
-            :get (handle-backward-channel req session-agent options))))))
+          :post (handle-forward-channel req session-agent options)
+          :get (handle-backward-channel req session-agent options))))))
 
 
 ;; see default-options for describtion of options

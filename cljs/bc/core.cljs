@@ -13,13 +13,15 @@
             (enable-chat)))
     (set! (.-channelHandleArray h)
           (fn [x data]
-            (let [msg (aget data "msg")]
+            (let [msg (aget data "msg")
+                  t (aget data "type")]
+              (.log js/console "msg" data msg t)
               (dom/append (dom/get-element "room") (dom/element :div (str "MSG::" msg))))))
     h))
 
 (defn say [text]
   (.sendMap channel (doto (js-obj)
-                      (aset "msg" text)) ))
+                      (aset "msg" text))))
 
 (defn enable-chat []
   (let [msg-input (dom/get-element "msg-input")
@@ -35,8 +37,8 @@
                      (when (= (.-keyCode e) key-codes/ENTER)
                        (handler e))))
     (events/listen send-button
-                  "click"
-                  handler)))
+                   "click"
+                   handler)))
 
 (def channel (goog.net.BrowserChannel.))
 

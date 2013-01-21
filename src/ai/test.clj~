@@ -1,0 +1,7 @@
+(ns ai.test
+  (:use clojure.test))
+(with-test
+  (defn add2 [x]
+    (+ x 2))
+  (is (= 4 (add2 2)))
+  (is (= 5 (add2 3))))
