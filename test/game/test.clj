@@ -50,11 +50,11 @@
         counts (map count network)
         partitioned (vec(partition 4 counts))]
     (is (=
-         (json/write-str [[3 5 5 3]
+         (json/json-str [[3 5 5 3]
                           [5 8 8 5]
                           [5 8 8 5]
                           [3 5 5 3]])
-         (json/write-str partitioned)))))
+         (json/json-str partitioned)))))
 
 (def smallest-world
   (vec (map (fn [i] (vector :floor))

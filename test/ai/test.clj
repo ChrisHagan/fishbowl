@@ -4,8 +4,7 @@
   (:use game.core)
   (:use ai.core))
 
-(deftest universeIsSane 
-  (println "Universe is sane today")
+(deftest universeIsSane
   (is (= 5 (+ 2 3))))
 
 (def net {:A {:B 85 :C 217 :E 173}
@@ -19,12 +18,6 @@
           :I {:J 84}
           :J {}
           })
-
-(defn children [net node]
-  (keys (net node)))
-
-(defn distance [net nodesrc nodedest]
-  ((net nodesrc) nodedest))
 
 (deftest dikstraWorks
   (let [pathinfo (shortest-path net :A :J children distance)]
